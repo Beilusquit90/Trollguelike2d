@@ -55,6 +55,14 @@ public:
 	void rMove(AMob * x);
 	void test(bool &flag);
 
+	void AI(AMob*rhs);
+	int Scaner(AMob*rhs, int r);
+	int AIPF(AMob*rhs);
+	int AFP(AMob*rhs);
+	void CTM();
+	int Shot(AMob*rhs, int dir);
+	void Archer();
+
 	float tempmx;
 	float tempmy;
 
@@ -66,7 +74,8 @@ public:
 
 private:
 	Body*MyHero;
-
+	int ShotMap[sizeMap][sizeMap];
+	int TactikMap[sizeMap][sizeMap];
 	int levelSize[sizeMap][sizeMap];			//массив содержащий отметки существ.
 	int MMA[sizeMap][sizeMap];				//ћассова€ маги€, особа€ так сказать...
 	int MA[sizeMap][sizeMap];					//карта магии и стрел.

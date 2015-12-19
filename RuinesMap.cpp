@@ -57,6 +57,25 @@ ARuinesMap::ARuinesMap()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+// Called when the game starts or when spawned
+void ARuinesMap::BeginPlay()
+{
+	SpawnSprites();
+	Super::BeginPlay();
+}
+
+// Called every frame
+void ARuinesMap::Tick(float DeltaTime)
+{
+	static bool flag = 0;
+
+	//FPlatformProcess::Sleep(1000);
+	if (vMob.size())
+		test(flag);
+	Super::Tick(DeltaTime);
+}
+
+
 
 void ARuinesMap::NewMapMan()
 {
@@ -95,33 +114,33 @@ void ARuinesMap::CreatMyHero()
 }
 
 
-// Called when the game starts or when spawned
-void ARuinesMap::BeginPlay()
-{
-	SpawnSprites();
-	Super::BeginPlay();
-}
-
-// Called every frame
-void ARuinesMap::Tick(float DeltaTime)
-{
-	static bool flag = 0;
-	
-	//FPlatformProcess::Sleep(1000);
-	if(vMob.size())
-		test(flag);
-	Super::Tick(DeltaTime);
-}
 
 void ARuinesMap::test(bool &flag)
 {
-	
+	int count = 0;
+	int death = 0;
+	for (int i = vMob.size()-1; i >= 0; i--)
+	{
+		if (vMob[i]->myBody.hp <= 0)
+		{
+			int cx = vMob[i]->myBody.cx;
+			int cy = vMob[i]->myBody.cy;
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("I m die...")));
+			AMap[vMob[i]->myBody.cx][vMob[i]->myBody.cy] = nullptr;
+			levelSize[vMob[i]->myBody.cx][vMob[i]->myBody.cy] = 0;
+			auto const &z = vMob[i];
+			vMob.erase(vMob.begin() + i);
+			z->Destroy();
+		}
+	}
+
+
 	for (auto const&z : vMob)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Some variable values: X: %i, Y: %i"), z->myBody.cx, z->myBody.cy));
-	//	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Some variable values: X: %i, Y: %i"), z->myBody->cx, z->myBody->cy));
-		rMove(z); flag = 1;
-		
+		if(z->myBody.tiktak<=0)
+		rMove(z);
+		else z->myBody.tiktak -=0.2;
+		z->myBody.hp--;
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Some variable values: I: %i"), i));
 	}
 }
@@ -430,4 +449,243 @@ void ARuinesMap::rMove(AMob * x) // заставляет убогих, совершать рандомное движе
 		default: {				/*		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("DEFAULT"));	*/			   break; }
 		}
 #undef Mob
+}
+
+void ARuinesMap::AI(AMob*rhs)
+{
+	if (TactikMap[rhs->cx][rhs->cy] != 1)
+	{
+		//lowHp(rhs);
+		switch (Scaner(rhs, 10))
+		{
+		case 0:rMove(*rhs); break;	// когда мы не видим врага.
+		case 1:
+			switch (rhs->role)// 1 воин. 2 лучник . 3 маг.
+			{
+			case 1: AIPF(rhs); break;
+			case 2: if (Scaner(rhs, 7)) { CTM(); Archer(rhs); AFP(rhs); }
+					else AIPF(rhs); break;
+			case 3: AIPF(rhs); break;
+			default:break;
+			}
+
+		default:
+			break;
+		}
+	}
+	else
+	{
+		//std::cout << "DODGE" << std::endl;
+		if (TactikMap[rhs->cx][rhs->cy + 1] != 1)Move(rhs->cx, rhs->cy + 1, rhs);
+		else if (TactikMap[rhs->cx + 1][rhs->cy + 1] != 1)Move(rhs->cx + 1, rhs->cy + 1, rhs);
+		else if (TactikMap[rhs->cx + 1][rhs->cy] != 1)Move(rhs->cx + 1, rhs->cy, rhs);
+		else if (TactikMap[rhs->cx + 1][rhs->cy - 1] != 1)Move(rhs->cx + 1, rhs->cy - 1, rhs);
+		else if (TactikMap[rhs->cx][rhs->cy - 1] != 1)Move(rhs->cx, rhs->cy - 1, rhs);
+		else if (TactikMap[rhs->cx - 1][rhs->cy - 1] != 1)Move(rhs->cx - 1, rhs->cy - 1, rhs);
+		else if (TactikMap[rhs->cx - 1][rhs->cy] != 1)Move(rhs->cx - 1, rhs->cy, rhs);
+		else if (TactikMap[rhs->cx - 1][rhs->cy + 1] != 1)Move(rhs->cx - 1, rhs->cy + 1, rhs);
+		else AIPF(rhs);
+	}
+}
+
+int ARuinesMap::AIPF(AMob*rhs)//AI Path Founder
+{
+#define zTOP_LEFT myPatch[i - 1][j + 1]
+#define zTOP_RIGHT myPatch[i + 1][j + 1]
+#define zTOP myPatch[i][j + 1]
+#define zBOT_LEFT myPatch[i - 1][j - 1]
+#define zBOT_RIGHT myPatch[i + 1][j - 1]
+#define zBOT myPatch[i][j - 1]
+#define zLEFT myPatch[i - 1][j]
+#define zRIGHT myPatch[i + 1][j]
+
+	int myPatch[sizeMap][sizeMap];
+	for (int i = 0; i < sizeMap; i++)
+		for (int j = 0; j < sizeMap; j++)
+			myPatch[i][j] = -3;
+
+	for (int i = 0; i < sizeMap; i++)
+		for (int j = 0; j < sizeMap; j++)
+			if (levelSize[i][j])myPatch[i][j] = -9;
+
+	for (int i = 0; i < sizeMap; i++)
+		for (int j = 0; j < sizeMap; j++)
+			if (TactikMap[i][j])myPatch[i][j] = -9;
+
+	myPatch[rhs->cx][rhs->cy] = -3;
+	myPatch[MyHero->cx][MyHero->cy] = 0;
+
+	for (int z = 0; myPatch[rhs->cx][rhs->cy] == (-3); z++)
+	{
+		for (int i = 0; i < sizeMap; i++)
+			for (int j = 0; j < sizeMap; j++)
+				if (myPatch[i][j] == z)
+				{
+					if (zTOP == -3)	zTOP = (z + 1);
+					if (zTOP_RIGHT == -3)	zTOP_RIGHT = (z + 1);
+					if (zRIGHT == -3)	zRIGHT = (z + 1);
+					if (zBOT_RIGHT == -3)	zBOT_RIGHT = (z + 1);
+					if (zBOT == -3)	zBOT = (z + 1);
+					if (zBOT_LEFT == -3)	zBOT_LEFT = (z + 1);
+					if (zLEFT == -3)	zLEFT = (z + 1);
+					if (zTOP_LEFT == -3)	zTOP_LEFT = (z + 1);
+				}
+		if (z>15) { rMove(*rhs); return 0; }
+	}
+
+	int temp[sizeMap][sizeMap];
+	for (int i = sizeMap - 1; i >= 0; i--)
+		for (int j = sizeMap - 1; j >= 0; j--)
+			temp[i][j] = 0;
+
+	for (int i = sizeMap - 1; i >= 0; i--)
+		for (int j = sizeMap - 1; j >= 0; j--)
+			if (levelSize[i][j] == 999) temp[i][j] = 9;
+
+
+	int tx = rhs->cx;
+	int ty = rhs->cy;
+
+	for (; myPatch[tx][ty] != 0;)
+	{
+		int t = myPatch[tx][ty] - 1;
+
+		if (myPatch[tx][ty + 1] == t) {
+			ty++; temp[tx][ty] = 1;
+		}
+		else if (myPatch[tx + 1][ty] == t) {
+			tx++; temp[tx][ty] = 1;
+		}
+		else if (myPatch[tx][ty - 1] == t) {
+			ty--; temp[tx][ty] = 1;
+		}
+		else if (myPatch[tx - 1][ty] == t) {
+			tx--; temp[tx][ty] = 1;
+		}
+		else if (myPatch[tx + 1][ty + 1] == t) {
+			tx++; ty++; temp[tx][ty] = 1;
+		}
+		else if (myPatch[tx + 1][ty - 1] == t) {
+			tx++; ty--; temp[tx][ty] = 1;
+		}
+		else if (myPatch[tx - 1][ty - 1] == t) {
+			tx--; ty--; temp[tx][ty] = 1;
+		}
+		else if (myPatch[tx - 1][ty + 1] == t) {
+			tx--; ty++; temp[tx][ty] = 1;
+		}
+	}
+
+	if (temp[rhs->cx][rhs->cy + 1] == 1) { Move(rhs->cx, rhs->cy + 1, rhs); }
+	else if (temp[rhs->cx + 1][rhs->cy + 1] == 1) { Move(rhs->cx + 1, rhs->cy + 1, rhs); }
+	else if (temp[rhs->cx + 1][rhs->cy] == 1) { Move(rhs->cx + 1, rhs->cy, rhs); }
+	else if (temp[rhs->cx + 1][rhs->cy - 1] == 1) { Move(rhs->cx + 1, rhs->cy - 1, rhs); }
+	else if (temp[rhs->cx][rhs->cy - 1] == 1) { Move(rhs->cx, rhs->cy - 1, rhs); }
+	else if (temp[rhs->cx - 1][rhs->cy - 1] == 1) { Move(rhs->cx - 1, rhs->cy - 1, rhs); }
+	else if (temp[rhs->cx - 1][rhs->cy] == 1) { Move(rhs->cx - 1, rhs->cy, rhs); }
+	else if (temp[rhs->cx - 1][rhs->cy + 1] == 1) { Move(rhs->cx - 1, rhs->cy + 1, rhs); }
+	//else std::cout << "ERROR IN AIPF(Body*rhs) func!" << std::endl;
+	return 0;
+}
+
+int ARuinesMap::AFP(AMob*rhs)	// Archer logic.
+{
+	int xx = MyHero->cx - rhs->cx;
+	int yy = MyHero->cy - rhs->cy;
+
+	if (ShotMap[rhs->cx][rhs->cy] == 1)
+	{
+		if (xx == 0 && yy > 0 && CheckDir(0, rhs) != 0)Shot(rhs, 0);
+		else if (xx > 0 && yy > 0 && CheckDir(1, rhs) != 0)Shot(rhs, 1);
+		else if (xx > 0 && yy == 0 && CheckDir(2, rhs) != 0)Shot(rhs, 2);
+		else if (xx > 0 && yy < 0 && CheckDir(3, rhs) != 0)Shot(rhs, 3);
+		else if (xx == 0 && yy < 0 && CheckDir(4, rhs) != 0)Shot(rhs, 4);
+		else if (xx < 0 && yy < 0 && CheckDir(5, rhs) != 0)Shot(rhs, 5);
+		else if (xx < 0 && yy == 0 && CheckDir(6, rhs) != 0)Shot(rhs, 6);
+		else if (xx < 0 && yy > 0 && CheckDir(7, rhs) != 0)Shot(rhs, 7);
+		else if (Scaner(rhs, 1)) { Move(MyHero->cx, MyHero->cy, rhs); }
+		else { /*std::cout << "AIPF next" << std::endl;*/ AIPF(rhs); }
+	}
+
+	else if (ShotMap[rhs->cx][rhs->cy + 1] == 1 && levelSize[rhs->cx][rhs->cy + 1] == 0)Move(rhs->cx, rhs->cy + 1, rhs);
+	else if (ShotMap[rhs->cx + 1][rhs->cy + 1] == 1 && levelSize[rhs->cx + 1][rhs->cy + 1])Move(rhs->cx + 1, rhs->cy + 1, rhs);
+	else if (ShotMap[rhs->cx + 1][rhs->cy] != 1 && levelSize[rhs->cx + 1][rhs->cy])Move(rhs->cx + 1, rhs->cy, rhs);
+	else if (ShotMap[rhs->cx + 1][rhs->cy - 1] == 1 && levelSize[rhs->cx + 1][rhs->cy - 1])Move(rhs->cx + 1, rhs->cy - 1, rhs);
+	else if (ShotMap[rhs->cx][rhs->cy - 1] == 1 && levelSize[rhs->cx][rhs->cy - 1])Move(rhs->cx, rhs->cy - 1, rhs);
+	else if (ShotMap[rhs->cx - 1][rhs->cy - 1] == 1 && levelSize[rhs->cx - 1][rhs->cy - 1])Move(rhs->cx - 1, rhs->cy - 1, rhs);
+	else if (ShotMap[rhs->cx - 1][rhs->cy] == 1 && levelSize[rhs->cx - 1][rhs->cy])Move(rhs->cx - 1, rhs->cy, rhs);
+	else if (ShotMap[rhs->cx - 1][rhs->cy + 1] == 1 && levelSize[rhs->cx - 1][rhs->cy + 1])Move(rhs->cx - 1, rhs->cy + 1, rhs);
+	else {  /*std::cout << "AIPF next" << std::endl;*/ AIPF(rhs); }
+
+	return 0;
+}
+
+void ARuinesMap::CTM() // clear tactik map
+{
+	for (int i = 0; i < sizeMap; i++)
+		for (int j = 0; j < sizeMap; j++)
+			if (levelSize[i][j] == 999) ShotMap[i][j] = levelSize[i][j];
+			else ShotMap[i][j] = 0;
+}
+
+int ARuinesMap::Scaner(AMob*rhs, int r)
+{
+	int radius = r;
+	if (abs((rhs->cx) - (MyHero->cx)) < radius && abs((rhs->cy) - (MyHero->cy)) < radius)
+		return 1;
+	else
+		return 0;
+}
+
+int ARuinesMap::Shot(AMob*rhs, int dir)
+{
+	//if (rhs->inventory.arrow > 0)
+	//{
+	int r;
+	rhs->
+	if (rhs->ag > 25)r = 7;
+	else r = 5;
+	vMA.push_back(MAmap(rhs, dir, Arrow, r));
+	MA[rhs->myBody.cx][rhs->myBody.cy] = 1;
+	rhs->myBody.tiktak += rhs->myBody.shotS;
+	return 3;
+	//}
+	//return 0;
+}
+
+void ARuinesMap::Archer()
+{
+	for (int i = 0; i < sizeMap; i++)
+		for (int j = 0; j < sizeMap; j++)
+			if (levelSize[i][j] == 999) ShotMap[i][j] = levelSize[i][j];
+			else ShotMap[i][j] = 0;
+			ShotMap[MyHero->cx][MyHero->cy] = 1;
+			int xx = MyHero->cx;
+			int yy = MyHero->cy;
+			for (int i = 0; i < 7 && ShotMap[xx][++yy] != 999; i++) ShotMap[xx][yy] = 1;
+			yy = MyHero->cy; xx = MyHero->cx;
+			for (int i = 0; i < 7 && ShotMap[++xx][++yy] != 999; i++) ShotMap[xx][yy] = 1;
+			yy = MyHero->cy; xx = MyHero->cx;
+			for (int i = 0; i < 7 && ShotMap[++xx][yy] != 999; i++) ShotMap[xx][yy] = 1;
+			yy = MyHero->cy; xx = MyHero->cx;
+			for (int i = 0; i < 7 && ShotMap[++xx][--yy] != 999; i++) ShotMap[xx][yy] = 1;
+			yy = MyHero->cy; xx = MyHero->cx;
+			for (int i = 0; i < 7 && ShotMap[xx][--yy] != 999; i++) ShotMap[xx][yy] = 1;
+			yy = MyHero->cy; xx = MyHero->cx;
+			for (int i = 0; i < 7 && ShotMap[--xx][--yy] != 999; i++) ShotMap[xx][yy] = 1;
+			yy = MyHero->cy; xx = MyHero->cx;
+			for (int i = 0; i < 7 && ShotMap[--xx][yy] != 999; i++) ShotMap[xx][yy] = 1;
+			yy = MyHero->cy; xx = MyHero->cx;
+			for (int i = 0; i < 7 && ShotMap[--xx][++yy] != 999; i++) ShotMap[xx][yy] = 1;
+
+			/*	for (int i = 0; i < sizeMap; i++){
+			for (int j = 0; j < sizeMap; j++)
+			{
+			if (levelSize[i][j]!=999)std::cout << ShotMap[i][j];
+			else std::cout << "*";
+			}
+			std::cout << std::endl;
+			}
+			*/
+
 }
