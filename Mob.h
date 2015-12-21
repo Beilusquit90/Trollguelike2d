@@ -12,10 +12,13 @@ class TROLLGUELIKE_API AMob : public AActor
 	
 public:	
 	// Sets default values for this actor's properties
-	//AMob();
-	//AMob(AMob&rhs);
-	//AMob& operator=(AMob*rhs);
-	//~AMob();
+	AMob();
+	AMob(AMob&&rhs);
+	AMob& operator=(AMob&&rhs);
+	//AMob(const AMob*rhs) { myBody = rhs->myBody;  };
+	//AMob& operator=(const AMob&rhs) { myBody = rhs.myBody;  return *this; };
+
+	//~AMob() { delete myBody; }
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	

@@ -6,32 +6,45 @@
 
 
 // Sets default values
-/*
+
 AMob::AMob()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Constructor"));
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
-*/
+
 /*
 AMob::~AMob()
 {
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Destructor"));
 }
 */
-/*
-AMob::AMob(AMob&rhs) {
+
+AMob::AMob(const AMob&rhs)
+{
 	myBody = rhs.myBody;
 }
 
 
-AMob& AMob::operator=(const AMob*rhs)
+AMob& AMob::operator=(const AMob&rhs)
 {
-	myBody = *rhs.myBody;
+	myBody = rhs.myBody;
 	return *this;
 }
-*/
+
+AMob::AMob(AMob&&rhs)
+{
+	myBody = std::move(rhs.myBody);
+}
+
+
+AMob& AMob::operator=(AMob&&rhs)
+{
+	myBody = std::move(rhs.myBody);
+	return *this;
+}
+
 // Called when the game starts or when spawned
 void AMob::BeginPlay()
 {

@@ -5,6 +5,7 @@ const int sizeMap = 50;
 #include <vector>
 #include "Body.h"
 #include "Mob.h"
+#include "Arrow.h"
 #include "GameFramework/Actor.h"
 #include "RuinesMap.generated.h"
 
@@ -53,7 +54,7 @@ public:
 	void CreatMyHero();
 	int Move(int x, int y, AMob*rhs);
 	void rMove(AMob * x);
-	void test(bool &flag);
+	void Activ();
 
 	void AI(AMob*rhs);
 	int Scaner(AMob*rhs, int r);
@@ -62,6 +63,14 @@ public:
 	void CTM();
 	int Shot(AMob*rhs, int dir);
 	void Archer();
+	int CheckDir(int dir, AMob*rhs);
+	void Attack(int x, int y, AMob*rhs);
+	int fly(AArrow*bird);
+	void DangerBirds(int dx, int dy, AArrow*bird);
+	void ClearTactikMap();
+	void WhoDie();
+	void flyDeath(); 
+	void BodyDeath();
 
 	float tempmx;
 	float tempmy;
@@ -73,7 +82,7 @@ public:
 	int mflag;
 
 private:
-	Body*MyHero;
+	AMob *MyHero;
 	int ShotMap[sizeMap][sizeMap];
 	int TactikMap[sizeMap][sizeMap];
 	int levelSize[sizeMap][sizeMap];			//массив содержащий отметки существ.
@@ -81,14 +90,20 @@ private:
 	int MA[sizeMap][sizeMap];					//карта магии и стрел.
 	int Patch[sizeMap][sizeMap];
 	AMob*AMap[sizeMap][sizeMap];
+	AArrow*mMap[sizeMap][sizeMap];
 	std::vector<Point>RL;
 	
 	int startx;
 	int starty;
 	int lvl;
-
+	std::vector<AArrow*>vArrow;
 	std::vector<AActor*>Walls;
 	std::vector<AMob*>vMob;
+
+
+
+	TSubclassOf<class AArrow>BPArrow;
 	TSubclassOf<class AActor>BpWall;
 	TSubclassOf<class AMob>MyMob;
+
 };

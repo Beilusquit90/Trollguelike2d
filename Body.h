@@ -1,6 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+
 #pragma once
+
+
+class AMob;
+
+
 class  Body
 {
 public:
@@ -11,10 +17,10 @@ public:
 
 
 	Body(const Body & rhs);
-	Body& operator=(const Body*rhs);
-
-	Body(Body&&rhs);
+	Body& operator=(const Body&rhs);
 	Body& operator=(Body&&rhs);
+	Body(Body&&rhs);
+	
 
 	void sKoef();
 	int exp;
@@ -39,5 +45,5 @@ public:
 						//std::vector<bag>inventory;
 	int mana;
 	int maxmana;
-	Body *MyKiller;		//ну ты понял че.
+	AMob *MyKiller;		//ну ты понял че.
 };

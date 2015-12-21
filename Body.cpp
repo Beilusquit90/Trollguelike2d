@@ -83,6 +83,7 @@ Body::Body(const Body&rhs)
 	jumpSpeed = rhs.jumpSpeed;
 	meditationS = rhs.meditationS;
 	rundiagonalS = rhs.rundiagonalS;
+	MyKiller = rhs.MyKiller;
 }
 
 Body::Body(Body&&rhs)
@@ -107,32 +108,34 @@ Body::Body(Body&&rhs)
 	jumpSpeed = std::move(rhs.jumpSpeed);
 	meditationS = std::move(rhs.meditationS);
 	rundiagonalS = std::move(rhs.rundiagonalS);
+	MyKiller = std::move(rhs.MyKiller);
 }
 
 
 
-Body& Body::operator=(const Body*rhs)
+Body& Body::operator=(const Body&rhs)
 {
-	cx = rhs->cx;
-	cy = rhs->cy;
-	hp = rhs->hp;
-	ag = rhs->str;
-	exp = rhs->exp;
-	str = rhs->str;
-	mana = rhs->mana;
-	role = rhs->role;
-	shotS = rhs->shotS;
-	maxhp = rhs->maxhp;
-	intel = rhs->intel;
-	moveS = rhs->moveS;
-	fizCDS = rhs->fizCDS;
-	tiktak = rhs->tiktak;
-	maxmana = rhs->maxmana;
-	attackS = rhs->attackS;
-	colldownS = rhs->colldownS;
-	jumpSpeed = rhs->jumpSpeed;
-	meditationS = rhs->meditationS;
-	rundiagonalS = rhs->rundiagonalS;
+	cx = rhs.cx;
+	cy = rhs.cy;
+	hp = rhs.hp;
+	ag = rhs.str;
+	exp = rhs.exp;
+	str = rhs.str;
+	mana = rhs.mana;
+	role = rhs.role;
+	shotS = rhs.shotS;
+	maxhp = rhs.maxhp;
+	intel = rhs.intel;
+	moveS = rhs.moveS;
+	fizCDS = rhs.fizCDS;
+	tiktak = rhs.tiktak;
+	maxmana = rhs.maxmana;
+	attackS = rhs.attackS;
+	colldownS = rhs.colldownS;
+	jumpSpeed = rhs.jumpSpeed;
+	meditationS = rhs.meditationS;
+	rundiagonalS = rhs.rundiagonalS;
+	MyKiller = rhs.MyKiller;
 	return *this;
 }
 
@@ -158,6 +161,7 @@ Body& Body::operator=(Body&&rhs)
 	jumpSpeed = std::move(rhs.jumpSpeed);
 	meditationS = std::move(rhs.meditationS);
 	rundiagonalS = std::move(rhs.rundiagonalS);
+	MyKiller = std::move(rhs.MyKiller);
 	return *this;
 }
 
