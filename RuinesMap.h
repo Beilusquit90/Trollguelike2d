@@ -51,7 +51,7 @@ public:
 	void generatePassage(const Point &start, const Point &finish);
 
 	void NewMapMan();
-	void CreatMyHero();
+	void CreatMyHero(int &x, int &y);
 	int Move(int x, int y, AMob*rhs);
 	void rMove(AMob * x);
 	void Activ();
@@ -71,6 +71,7 @@ public:
 	void WhoDie();
 	void flyDeath(); 
 	void BodyDeath();
+	int CanActiv();
 
 	float tempmx;
 	float tempmy;
@@ -100,10 +101,7 @@ private:
 	std::vector<AActor*>Walls;
 	std::vector<AMob*>vMob;
 
-
-
 	TSubclassOf<class AArrow>BPArrow;
 	TSubclassOf<class AActor>BpWall;
 	TSubclassOf<class AMob>MyMob;
-
 };

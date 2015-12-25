@@ -54,7 +54,7 @@ ARuinesMap::ARuinesMap()
 
 
 	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, TEXT("Конец конструктора"));
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 // Called when the game starts or when spawned
@@ -70,8 +70,8 @@ void ARuinesMap::Tick(float DeltaTime)
 	static bool flag = 0;
 
 	//FPlatformProcess::Sleep(1000);
-	if (vMob.size())
-		Activ();
+	
+
 	Super::Tick(DeltaTime);
 }
 
@@ -94,7 +94,7 @@ void ARuinesMap::NewMapMan()
 	}
 }
 
-void ARuinesMap::CreatMyHero()
+void ARuinesMap::CreatMyHero(int &x,int &y)
 {
 	int i = 1, cx, cy, role=9;
 	for (;;)
@@ -103,55 +103,54 @@ void ARuinesMap::CreatMyHero()
 		cy = FMath::RandHelper(sizeMap);
 		if (levelSize[cx][cy] == 0)
 		{
-		//	vBody.push_back(Body(role, cx, cy, lvl));
-			//MyHero=&vBody.back();
-			UWorld* const World = GetWorld();
-			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.Owner = this;
-			FVector position(cx*rad, cy*rad, 0);
-			FRotator rotator(0, 0, 0);
-			int lvl = 1;
-			MyHero = (GetWorld()->SpawnActor<AMob>(MyMob, position, rotator, SpawnInfo));
-			MyHero->myBody=(Body(levelSize[cx][cy], cx, cy, lvl));
 			MyHero->myBody.role=9; 
-			
-			//AMap[cx][cy] = MyHero;
 			levelSize[cx][cy] = 9;
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Hero role: X: %i"), MyHero->myBody.role));
 			break;
 		}
 	}
 }
 
+int ARuinesMap::CanActiv()
+{
+	if (MyHero == nullptr)	return 0;
+	if (MyHero->myBody.tiktak > 0) return 1;
+	else return 2;
+}
+
 void ARuinesMap::Activ()
 {
-	WhoDie();
-	if (MyHero->myBody.hp <= 0)
-		MyHero->Destroy();
-	ClearTactikMap();
-	AI(MyHero);
-	for (auto const&z : vArrow)
+	if (vMob.size())
 	{
-		if (z->tiktak <= 0)
-			fly(z);
-		else z->tiktak -= 0.2;
-	}
-	for (auto const&z : vMob)
-	{ if(z==MyHero)
-	{
-		FRotator rotator(0, 0, 0);
-		z->SetActorRotation(rotator);
-	}
-		if (z->myBody.tiktak <= 0)
+		WhoDie();
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Hero role: X: %i"), MyHero->myBody.role));
+		if (MyHero->myBody.hp <= 0)
+			MyHero->Destroy();
+		ClearTactikMap();
+		AI(MyHero);
+		for (auto const&z : vArrow)
 		{
-			if (z->myBody.role == 9)
-				rMove(z);
-			else
-				AI(z);
+			if (z->tiktak <= 0)
+				fly(z);
+			else z->tiktak -= 0.2;
 		}
+		for (auto const&z : vMob)
+		{
+			if (z == MyHero)
+			{
+				FRotator rotator(0, 0, 0);
+				z->SetActorRotation(rotator);
+			}
+			if (z->myBody.tiktak <= 0)
+			{
+				if (z->myBody.role == 9)
+					rMove(z);
+				else
+					AI(z);
+			}
 			else z->myBody.tiktak -= 0.2;
+		}
+		WhoDie();
 	}
-	WhoDie();
 }
 
 void ARuinesMap::CreateLvl()
@@ -288,9 +287,7 @@ void ARuinesMap::SpawnSprites()
 				}
 
 			}
-		CreatMyHero();
 	}
-	
 }
 
 void ARuinesMap::checkdiag()
@@ -482,19 +479,20 @@ void ARuinesMap::rMove(AMob * x) // Random moved.
 
 void ARuinesMap::AI(AMob*rhs)
 {
-	
+	if (levelSize[rhs->myBody.cx][rhs->myBody.cy] == 9)
+		rMove(rhs);
 	if (TactikMap[rhs->myBody.cx][rhs->myBody.cy] != 1)
 	{
 		//lowHp(rhs);
-		switch (Scaner(rhs, 30))
+		switch (Scaner(rhs, 60))
 		{
 		case 0:rMove(rhs); break;	// когда мы не видим врага.
 		case 1:
 			switch (rhs->myBody.role)// 1 воин. 2 лучник . 3 маг.
 			{
 			case 1: AIPF(rhs); break;
-			case 2: //if (Scaner(rhs, 7)) { CTM(); Archer(); AFP(rhs); break; }  GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Role create: X: %i"),rhs->myBody.role));
-					//else
+			case 2: if (Scaner(rhs, 7)) { CTM(); Archer(); AFP(rhs); break; }
+					else
 					 AIPF(rhs); break;
 			case 3: AIPF(rhs); break;
 			case 9: rMove(rhs);
@@ -877,7 +875,6 @@ void ARuinesMap::flyDeath() // Lets check, who or "Arrow" die
 		{
 			int cx = vArrow[i]->cx;
 			int cy = vArrow[i]->cy;
-			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Arrow die")));
 			mMap[cx][cy] = 0;
 			MA[cx][cy] = 0;
 			auto const &z = vArrow[i];
