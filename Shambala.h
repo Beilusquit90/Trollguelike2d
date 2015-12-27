@@ -42,3 +42,5 @@ private:
 	TSubclassOf<class AMob>MyMob;
 	TSubclassOf<class ARuinesMap>BPRuinesMap;
 };
+
+extern int flags;

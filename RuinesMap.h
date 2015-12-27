@@ -4,6 +4,7 @@
 const int sizeMap = 50;
 #include <vector>
 #include "Body.h"
+#include "Floor.h"
 #include "Mob.h"
 #include "Arrow.h"
 #include "GameFramework/Actor.h"
@@ -50,6 +51,11 @@ public:
 	void PatchFound();
 	void generatePassage(const Point &start, const Point &finish);
 
+	void StepsFind(const Point &start, const Point &finish);
+	int CreateSteps(int tx, int ty);
+
+
+
 	void NewMapMan();
 	void CreatMyHero(int &x, int &y);
 	int Move(int x, int y, AMob*rhs);
@@ -81,9 +87,12 @@ public:
 	bool restartFlag;
 	int ioflag;
 	int mflag;
+	int flags;
 
-private:
+	std::vector<int>steps;
 	AMob *MyHero;
+private:
+	
 	int ShotMap[sizeMap][sizeMap];
 	int TactikMap[sizeMap][sizeMap];
 	int levelSize[sizeMap][sizeMap];			//массив содержащий отметки существ.
@@ -101,7 +110,8 @@ private:
 	std::vector<AActor*>Walls;
 	std::vector<AMob*>vMob;
 
-	TSubclassOf<class AArrow>BPArrow;
+	TSubclassOf<class AFloor>BPArrow;
+	TSubclassOf<class AFloor>BPFloor;
 	TSubclassOf<class AActor>BpWall;
 	TSubclassOf<class AMob>MyMob;
 };

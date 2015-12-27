@@ -16,10 +16,16 @@
 ARuinesMap::ARuinesMap()
 {
 	
-	static ConstructorHelpers::FObjectFinder<UBlueprint> MyWallBP(TEXT("Blueprint'/Game/NewFolder/NewBlueprint.NewBlueprint'"));
+	static ConstructorHelpers::FObjectFinder<UBlueprint> MyFloorBP(TEXT("Blueprint'/Game/NewFolder/MyFloor.MyFloor'"));
+	static ConstructorHelpers::FObjectFinder<UBlueprint> MyWallBP(TEXT("Blueprint'/Game/NewFolder/Wall.Wall'"));
 	static ConstructorHelpers::FObjectFinder<UBlueprint> MyMobBP(TEXT("Blueprint'/Game/MyMob.MyMob'"));
 	static ConstructorHelpers::FObjectFinder<UBlueprint> MyArrowBP(TEXT("Blueprint'/Game/NewFolder/MyArrow.MyArrow'"));
-	
+
+
+	if (MyFloorBP.Object != NULL)
+	{
+		BPFloor = (UClass*)MyFloorBP.Object->GeneratedClass;
+	}
 
 
 	if (MyArrowBP.Object != NULL)
@@ -67,11 +73,7 @@ void ARuinesMap::BeginPlay()
 // Called every frame
 void ARuinesMap::Tick(float DeltaTime)
 {
-	static bool flag = 0;
-
 	//FPlatformProcess::Sleep(1000);
-	
-
 	Super::Tick(DeltaTime);
 }
 
@@ -103,7 +105,7 @@ void ARuinesMap::CreatMyHero(int &x,int &y)
 		cy = FMath::RandHelper(sizeMap);
 		if (levelSize[cx][cy] == 0)
 		{
-			MyHero->myBody.role=9; 
+			//MyHero->myBody.role=9; 
 			levelSize[cx][cy] = 9;
 			break;
 		}
@@ -112,9 +114,9 @@ void ARuinesMap::CreatMyHero(int &x,int &y)
 
 int ARuinesMap::CanActiv()
 {
-	if (MyHero == nullptr)	return 0;
-	if (MyHero->myBody.tiktak > 0) return 1;
-	else return 2;
+	if (MyHero == nullptr) { return 0; }
+	if (MyHero->myBody.tiktak > 0) {  return 1; }
+	else { /*GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("myBody.tiktak < 0")));*/ return 2; }
 }
 
 void ARuinesMap::Activ()
@@ -124,28 +126,27 @@ void ARuinesMap::Activ()
 		WhoDie();
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Hero role: X: %i"), MyHero->myBody.role));
 		if (MyHero->myBody.hp <= 0)
+		{
 			MyHero->Destroy();
-		ClearTactikMap();
-		AI(MyHero);
+			MyHero = nullptr;
+			ClearTactikMap();
+			return;
+		//	AI(MyHero);
+		}
 		for (auto const&z : vArrow)
 		{
 			if (z->tiktak <= 0)
 				fly(z);
 			else z->tiktak -= 0.2;
+			
 		}
 		for (auto const&z : vMob)
 		{
-			if (z == MyHero)
-			{
-				FRotator rotator(0, 0, 0);
-				z->SetActorRotation(rotator);
-			}
+			
 			if (z->myBody.tiktak <= 0)
 			{
-				if (z->myBody.role == 9)
-					rMove(z);
-				else
 					AI(z);
+					
 			}
 			else z->myBody.tiktak -= 0.2;
 		}
@@ -165,7 +166,6 @@ void ARuinesMap::CreateLvl()
 		for (int y = 0; y < sizeMap; y++)
 			if (levelSize[x][y] != 999)
 				levelSize[x][y] =0;
-	//std::cout << "MAP GEN FINISH" << std::endl;
 }
 
 void ARuinesMap::MapGen()
@@ -264,6 +264,23 @@ void ARuinesMap::SpawnSprites()
 
 	if (World)
 	{
+
+		for (int i = 0; i < sizeMap; i++)
+			for (int j = 0; j < sizeMap; j++)
+			{
+				if (levelSize[i][j] != 999)
+				{
+					FVector position(i*rad, j*rad, 0);
+					FRotator rotator(0, -10, 90);
+					AFloor*z= GetWorld()->SpawnActor<AFloor>(BPFloor, position, rotator, SpawnInfo);
+					//UStaticMeshComponent* BlockMesh;
+					//BlockMesh= z->CreateDefaultSubobject<UStaticMeshComponent>(z, TEXT("ShipMesh"));
+					//BlockMesh->OnClicked.AddDynamic(z, &AFloor::BlockClicked);
+					
+				}
+			}
+
+
 		for (int i = 0; i < sizeMap; i++)
 			for (int j = 0; j < sizeMap; j++)
 			{
@@ -491,7 +508,7 @@ void ARuinesMap::AI(AMob*rhs)
 			switch (rhs->myBody.role)// 1 воин. 2 лучник . 3 маг.
 			{
 			case 1: AIPF(rhs); break;
-			case 2: if (Scaner(rhs, 7)) { CTM(); Archer(); AFP(rhs); break; }
+			case 2: if (Scaner(rhs, 7)) { AIPF(rhs);/*{ CTM(); Archer(); AFP(rhs);*/ break; }
 					else
 					 AIPF(rhs); break;
 			case 3: AIPF(rhs); break;
@@ -943,3 +960,146 @@ void AMaMap::SpawnArrow(AMob*rhs, int dir, int r)
 	}
 }
 */
+
+
+
+
+
+int ARuinesMap::CreateSteps(int tx, int ty)
+{
+#define Hero MyHero->myBody
+	int _tx = abs(tx - Hero.cx), _ty = abs(ty - Hero.cy);
+	if (_tx + _ty)
+		if (_tx<2 && _ty<2)
+		{
+			Move(tx, ty, MyHero);
+			return 0;
+		}
+
+
+	if (levelSize[tx][ty] == 999) { return 0; }
+
+	Point start(Hero.cx, Hero.cy);
+	Point end(tx, ty);
+	StepsFind(start, end);
+
+	int xx = Hero.cx;
+	int yy = Hero.cy;
+	Patch[xx][yy] = 0;
+	//std::cout << "patch start" << std::endl;
+	for (;;)
+	{
+		if (Patch[xx][yy + 1] == 1) { steps.push_back(1); Patch[xx][yy] = 0; yy++;  continue; };
+		if (Patch[xx + 1][yy + 1] == 1) { steps.push_back(2); Patch[xx][yy] = 0; xx++; yy++; continue; }
+		if (Patch[xx + 1][yy] == 1) { steps.push_back(3); Patch[xx][yy] = 0; xx++; continue; }
+		if (Patch[xx + 1][yy - 1] == 1) { steps.push_back(4); Patch[xx][yy] = 0; xx++; yy--; continue; }
+		if (Patch[xx][yy - 1] == 1) { steps.push_back(5); Patch[xx][yy] = 0; yy--; continue; }
+		if (Patch[xx - 1][yy - 1] == 1) { steps.push_back(6); Patch[xx][yy] = 0; xx--; yy--; continue; }
+		if (Patch[xx - 1][yy] == 1) { steps.push_back(7); Patch[xx][yy] = 0; xx--; continue; }
+		if (Patch[xx - 1][yy + 1] == 1) { steps.push_back(8); Patch[xx][yy] = 0; xx--; yy++; continue; }
+		else	break;
+	}
+
+	return 0;
+}
+
+void ARuinesMap::StepsFind(const Point &start, const Point &finish)
+{
+
+#define TOP_LEFT Patch[i - 1][j + 1]
+#define TOP_RIGHT Patch[i + 1][j + 1]
+#define TOP Patch[i][j + 1]
+#define BOT_LEFT Patch[i - 1][j - 1]
+#define BOT_RIGHT Patch[i + 1][j - 1]
+#define BOT Patch[i][j - 1]
+#define LEFT Patch[i - 1][j]
+#define RIGHT Patch[i + 1][j]
+
+	//std::cout << "START STEP FINDS" << std::endl;
+	for (int i = 0; i < sizeMap; i++)
+		for (int j = 0; j < sizeMap; j++)
+			Patch[i][j] = -3;
+
+	for (int i = sizeMap - 1; i >= 0; i--)
+		for (int j = sizeMap - 1; j >= 0; j--)
+			if (levelSize[i][j] == 999) Patch[i][j] = -9;
+
+	Patch[finish.x][finish.y] = 0;
+
+	int zflag = 0;
+	for (int z = 0; Patch[start.x][start.y] == (-3); z++)
+	{
+		for (int i = 0; i < sizeMap; i++)
+			for (int j = 0; j < sizeMap; j++)
+				if (Patch[i][j] == z)
+				{
+					if (TOP == -3)	TOP = (z + 1);
+					if (TOP_RIGHT == -3)	TOP_RIGHT = (z + 1);
+					if (RIGHT == -3)	RIGHT = (z + 1);
+					if (BOT_RIGHT == -3)	BOT_RIGHT = (z + 1);
+					if (BOT == -3)	BOT = (z + 1);
+					if (BOT_LEFT == -3)	BOT_LEFT = (z + 1);
+					if (LEFT == -3)	LEFT = (z + 1);
+					if (TOP_LEFT == -3)	TOP_LEFT = (z + 1);
+				}
+		if (z > 300)
+			zflag = 1;
+	}
+
+
+	if (zflag == 0)
+	{
+		int temp[sizeMap][sizeMap];
+		for (int i = sizeMap - 1; i >= 0; i--)
+			for (int j = sizeMap - 1; j >= 0; j--)
+				temp[i][j] = 0;
+
+		for (int i = sizeMap - 1; i >= 0; i--)
+			for (int j = sizeMap - 1; j >= 0; j--)
+				if (levelSize[i][j] == 999) temp[i][j] = 9;
+
+
+		int tx = start.x;
+		int ty = start.y;
+
+
+		for (; Patch[tx][ty] != 0;)
+		{
+			int t = Patch[tx][ty] - 1;
+
+
+			if (Patch[tx][ty + 1] == t) {
+				ty++; temp[tx][ty] = 1;
+			}
+			else if (Patch[tx + 1][ty] == t) {
+				tx++; temp[tx][ty] = 1;
+			}
+			else if (Patch[tx][ty - 1] == t) {
+				ty--; temp[tx][ty] = 1;
+			}
+			else if (Patch[tx - 1][ty] == t) {
+				tx--; temp[tx][ty] = 1;
+			}
+			else if (Patch[tx + 1][ty + 1] == t) {
+				tx++; ty++; temp[tx][ty] = 1;
+			}
+			else if (Patch[tx + 1][ty - 1] == t) {
+				tx++; ty--; temp[tx][ty] = 1;
+			}
+			else if (Patch[tx - 1][ty - 1] == t) {
+				tx--; ty--; temp[tx][ty] = 1;
+			}
+			else if (Patch[tx - 1][ty + 1] == t) {
+				tx--; ty++; temp[tx][ty] = 1;
+			}
+		}
+
+		for (int i = 0; i < sizeMap; i++)
+			for (int j = 0; j < sizeMap; j++)
+				Patch[i][j] = 0;
+
+		for (int i = 0; i < sizeMap; i++)
+			for (int j = 0; j < sizeMap; j++)
+				Patch[i][j] = temp[i][j];
+	}
+}

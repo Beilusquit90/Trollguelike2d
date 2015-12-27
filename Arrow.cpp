@@ -28,6 +28,7 @@ void AArrow::Tick( float DeltaTime )
 
 void AArrow::SetInfo(AMob*rhs, int dir, int r)
 {
+	if(rhs)
 	Attacker = rhs;
 	cx = Attacker->myBody.cx;
 	cy = Attacker->myBody.cy;
